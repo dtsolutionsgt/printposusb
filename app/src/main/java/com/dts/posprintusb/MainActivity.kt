@@ -2,16 +2,26 @@ package com.dts.posprintusb
 
 import android.Manifest
 import android.app.AlertDialog
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.hardware.usb.UsbDevice
+import android.hardware.usb.UsbDeviceConnection
+import android.hardware.usb.UsbEndpoint
+import android.hardware.usb.UsbInterface
+import android.hardware.usb.UsbManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.os.Parcelable
 import android.provider.Settings
 import android.view.Gravity
 import android.view.View
@@ -24,6 +34,7 @@ import net.posprinter.POSConst
 import net.posprinter.POSPrinter
 import java.io.File
 
+
 class MainActivity : AppCompatActivity() {
 
     lateinit var printer:  POSPrinter
@@ -35,12 +46,25 @@ class MainActivity : AppCompatActivity() {
     var macro_param = ""
     var line = ""
 
+    val ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION"
+    val forceCLaim = true
+
+    var mDeviceList: HashMap<String, UsbDevice>? = null
+    var mDeviceIterator: Iterator<UsbDevice>? = null
+
+    var mUsbManager: UsbManager? = null
+    var mDevice: UsbDevice? = null
+    var mConnection: UsbDeviceConnection? = null
+    var mInterface: UsbInterface? = null
+    var mEndPoint: UsbEndpoint? = null
+    var mPermissionIntent: PendingIntent? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
         try {
             super.onCreate(savedInstanceState)
             setContentView(R.layout.activity_main)
+
 
             grantPermissions()
 
@@ -68,24 +92,47 @@ class MainActivity : AppCompatActivity() {
                 return
             }
 
+            val mUsbManager = getSystemService(Context.USB_SERVICE) as UsbManager
+            mDeviceList = mUsbManager?.getDeviceList()
+            val mDeviceIterator = mDeviceList?.values
+
+
+            mPermissionIntent =
+                PendingIntent.getBroadcast(
+                    this,
+                    0,
+                    Intent(ACTION_USB_PERMISSION),
+                    PendingIntent.FLAG_IMMUTABLE
+                )
+            val filter = IntentFilter(ACTION_USB_PERMISSION)
+            registerReceiver(mUsbReceiver, filter)
+
+            var usbDevice = ""
+
+            for (itm in mDeviceList?.values!!) {
+                val usbDevice1 = itm
+                val interfaceCount = usbDevice1.interfaceCount
+                mDevice = usbDevice1
+            }
+
+            mUsbManager!!.requestPermission(mDevice, mPermissionIntent)
+
             usbaddress=getUsb()
             if (usbaddress.isEmpty()) {
                 msgclose("¡No está conectada ninguna impresora USB!");return
             }
 
+            /*
             if (connectUSB()) {
                 val handler = Handler(Looper.getMainLooper())
                 handler.postDelayed( { processPrint() }, 500)
             }
+            */
 
         } catch (e: Exception) {
             msgbox(object : Any() {}.javaClass.enclosingMethod.name+" . "+e.message)
         }
     }
-
-    //endregion
-
-    //region Main
 
     fun processPrint() {
 
@@ -137,6 +184,32 @@ class MainActivity : AppCompatActivity() {
             handler.postDelayed( { closeSession() }, 3000)
         } catch (e: Exception) {
             msgclose(e.message!!)
+        }
+    }
+
+    //endregion
+
+    //region Permission USB
+
+    val mUsbReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val action = intent.action
+
+            if (ACTION_USB_PERMISSION == action) {
+                synchronized(this) {
+                    val device =
+                        intent.getParcelableExtra<Parcelable>(UsbManager.EXTRA_DEVICE) as UsbDevice?
+
+                    if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, true)) {
+                        if (connectUSB()) {
+                            val handler = Handler(Looper.getMainLooper())
+                            handler.postDelayed( { processPrint() }, 500)
+                        }
+                    } else {
+                        toast("PERMISO IMPRIMIR DENEGADO")
+                    }
+                }
+            }
         }
     }
 
