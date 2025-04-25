@@ -33,6 +33,7 @@ import net.posprinter.POSConnect
 import net.posprinter.POSConst
 import net.posprinter.POSPrinter
 import java.io.File
+import kotlin.system.exitProcess
 
 
 class MainActivity : AppCompatActivity() {
@@ -64,7 +65,6 @@ class MainActivity : AppCompatActivity() {
         try {
             super.onCreate(savedInstanceState)
             setContentView(R.layout.activity_main)
-
 
             grantPermissions()
 
@@ -356,7 +356,10 @@ class MainActivity : AppCompatActivity() {
             disconnectUSB()
 
             val handler = Handler(Looper.getMainLooper())
-            handler.postDelayed( { finish() }, 300)
+            handler.postDelayed( {
+                exitProcess(0)
+                //finish()
+                                 }, 300)
 
         } catch (e: java.lang.Exception) {
             toast(object : Any() {}.javaClass.enclosingMethod.name + " . " + e.message)
@@ -373,20 +376,6 @@ class MainActivity : AppCompatActivity() {
         val toast = Toast.makeText(applicationContext, msg, Toast.LENGTH_LONG)
         toast.setGravity(Gravity.CENTER, 0, 0)
         toast.show()
-    }
-
-    fun processPrintTest() {
-        try {
-            printText("Welcome to the printer,this is print test!")
-            printTextDouble("ORDEN #000")
-            printTextDoubleLeft("ORDEN #000")
-            printImage("qrmpos.png",384)
-            cut()
-
-            finishPrint()
-        } catch (e: Exception) {
-            msgclose(e.message!!)
-        }
     }
 
     //endregion
