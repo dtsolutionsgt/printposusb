@@ -96,7 +96,6 @@ class MainActivity : AppCompatActivity() {
             mDeviceList = mUsbManager?.getDeviceList()
             val mDeviceIterator = mDeviceList?.values
 
-
             mPermissionIntent =
                 PendingIntent.getBroadcast(
                     this,
@@ -115,9 +114,14 @@ class MainActivity : AppCompatActivity() {
                 mDevice = usbDevice1
             }
 
-            mUsbManager!!.requestPermission(mDevice, mPermissionIntent)
+            try {
+                mUsbManager!!.requestPermission(mDevice, mPermissionIntent)
+            } catch (e: java.lang.Exception) {
+                msgclose("No se puede conectar a la impresora." );return
+            }
 
             usbaddress=getUsb()
+            toast("5")
             if (usbaddress.isEmpty()) {
                 msgclose("¡No está conectada ninguna impresora USB!");return
             }
