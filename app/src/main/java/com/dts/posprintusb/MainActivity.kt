@@ -236,7 +236,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun printImage(fname: String) {
-        printImageBase(fname,384,POSConst.ALIGNMENT_CENTER)
+        printImageBase(fname,600,POSConst.ALIGNMENT_CENTER)
     }
 
     fun printImage(fname: String,width: Int) {
